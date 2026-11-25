@@ -429,7 +429,7 @@
     return m ? m[1] : "";
   }
 
-  const SITE = "https://first-shift-prototype.netlify.app";
+  const SITE = "https://loren-tcl.github.io/first-shift";
   function inviteBlock() {
     return `<div class="card"><span class="h2">Know someone with an interesting job?</span>
       <span style="font-size:14px;color:var(--muted);line-height:1.4">Invite them to answer five quick questions on video. Your parent sends the invite, so they know it's really from you.</span>
