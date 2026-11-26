@@ -48,7 +48,7 @@
       jobs: ["Sales", "Starting a business", "Contractor or trades boss", "EMT or firefighter", "Coach", "Restaurant manager"] },
     I: { name: "The Spark", stat: "Spark", line: "Gets people moving. Thinks out loud.", thrive: "It's busy, you're around people, and no two days are the same.",
       jobs: ["Teacher", "Marketing or social media", "Event planner", "Server or host", "Real estate", "Camp counselor"] },
-    S: { name: "The Anchor", stat: "Steady", line: "Steady and loyal. The one people count on.", thrive: "The team is close, you know what's coming, and you get to help people.",
+    S: { name: "The Anchor", stat: "Loyalty", line: "Steady and loyal. The one people count on.", thrive: "The team is close, you know what's coming, and you get to help people.",
       jobs: ["Nurse", "Vet tech", "Counselor", "Childcare", "Physical therapist", "Office manager"] },
     C: { name: "The Architect", stat: "Precision", line: "Gets it right. Loves a good system.", thrive: "Quality matters, the rules are clear, and you have time to do it well.",
       jobs: ["Engineer", "Electrician", "Programmer", "Accountant", "Lab tech", "Pharmacist"] }
@@ -201,7 +201,7 @@
         <div class="field"><label for="ph">A parent's cell number (for asking adults for chats and shadow days)</label><input id="ph" type="tel" inputmode="tel" autocomplete="off" value="${esc(S.parentPhone)}"></div>
       </div>
       <div class="card">
-        <span class="h2">What do you want to do for work?</span>
+        <span class="h2">What do you want to do for work as an adult?</span>
         <div class="chips" role="group" aria-label="Choose one">
           <button class="chip ${m === "idea" ? "on" : ""}" data-dm="idea">I have something in mind</button>
           <button class="chip ${m === "exploring" ? "on" : ""}" data-dm="exploring">I'm exploring a few things</button>
