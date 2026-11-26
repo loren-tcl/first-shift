@@ -2,7 +2,7 @@
 // To add a video: paste a YouTube link (unlisted is fine) into "youtube" for that question.
 // photo: optional, e.g. "photos/stacy.jpg" (put the file in the photos folder). Initials show until then.
 // "text" can hold a short written answer instead. Leave both empty until the real answer exists.
-// fit: the play styles this kind of job tends to suit (D Drive, I Spark, S Loyalty, C Precision)
+// fit: the play styles this kind of job tends to suit (D Drive, I Spark, S Calm, C Precise)
 // area must be one of: food, helping, health, building, tech, animals, business, finance, law, education, arts, outdoors
 window.PROS = [
   {

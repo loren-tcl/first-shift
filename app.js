@@ -48,9 +48,9 @@
       jobs: ["Sales", "Starting a business", "Contractor or trades boss", "EMT or firefighter", "Coach", "Restaurant manager"] },
     I: { name: "The Spark", stat: "Spark", line: "Gets people moving. Thinks out loud.", thrive: "It's busy, you're around people, and no two days are the same.",
       jobs: ["Teacher", "Marketing or social media", "Event planner", "Server or host", "Real estate", "Camp counselor"] },
-    S: { name: "The Anchor", stat: "Loyalty", line: "Steady and loyal. The one people count on.", thrive: "The team is close, you know what's coming, and you get to help people.",
+    S: { name: "The Anchor", stat: "Calm", line: "Steady and loyal. The one people count on.", thrive: "The team is close, you know what's coming, and you get to help people.",
       jobs: ["Nurse", "Vet tech", "Counselor", "Childcare", "Physical therapist", "Office manager"] },
-    C: { name: "The Architect", stat: "Precision", line: "Gets it right. Loves a good system.", thrive: "Quality matters, the rules are clear, and you have time to do it well.",
+    C: { name: "The Architect", stat: "Precise", line: "Gets it right. Loves a good system.", thrive: "Quality matters, the rules are clear, and you have time to do it well.",
       jobs: ["Engineer", "Electrician", "Programmer", "Accountant", "Lab tech", "Pharmacist"] }
   };
 
