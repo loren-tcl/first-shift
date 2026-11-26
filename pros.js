@@ -563,5 +563,91 @@ window.PROS = [
         "text": ""
       }
     ]
+  },
+  {
+    "id": "cori",
+    "name": "Cori Veatch",
+    "relation": "",
+    "job": "Doctor",
+    "area": "health",
+    "fit": [
+      "C",
+      "D"
+    ],
+    "offers": {
+      "chat": true,
+      "shadow": true
+    },
+    "note": "",
+    "videos": [
+      {
+        "q": "What do you actually do all day?",
+        "youtube": "",
+        "text": ""
+      },
+      {
+        "q": "Best part, and the part you'd skip?",
+        "youtube": "",
+        "text": ""
+      },
+      {
+        "q": "How did you end up doing this?",
+        "youtube": "",
+        "text": ""
+      },
+      {
+        "q": "What would you tell a curious 15-year-old?",
+        "youtube": "",
+        "text": ""
+      },
+      {
+        "q": "How could a teen try a piece of it now?",
+        "youtube": "",
+        "text": ""
+      }
+    ]
+  },
+  {
+    "id": "kevin",
+    "name": "Kevin Englehardt",
+    "relation": "",
+    "job": "Doctor",
+    "area": "health",
+    "fit": [
+      "C",
+      "D"
+    ],
+    "offers": {
+      "chat": true,
+      "shadow": true
+    },
+    "note": "",
+    "videos": [
+      {
+        "q": "What do you actually do all day?",
+        "youtube": "",
+        "text": ""
+      },
+      {
+        "q": "Best part, and the part you'd skip?",
+        "youtube": "",
+        "text": ""
+      },
+      {
+        "q": "How did you end up doing this?",
+        "youtube": "",
+        "text": ""
+      },
+      {
+        "q": "What would you tell a curious 15-year-old?",
+        "youtube": "",
+        "text": ""
+      },
+      {
+        "q": "How could a teen try a piece of it now?",
+        "youtube": "",
+        "text": ""
+      }
+    ]
   }
 ];

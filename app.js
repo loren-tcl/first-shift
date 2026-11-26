@@ -201,7 +201,7 @@
         <div class="field"><label for="ph">A parent's cell number (for asking adults for chats and shadow days)</label><input id="ph" type="tel" inputmode="tel" autocomplete="off" value="${esc(S.parentPhone)}"></div>
       </div>
       <div class="card">
-        <span class="h2">What do you want to do as an adult?</span>
+        <span class="h2">What do you want to do for work?</span>
         <div class="chips" role="group" aria-label="Choose one">
           <button class="chip ${m === "idea" ? "on" : ""}" data-dm="idea">I have something in mind</button>
           <button class="chip ${m === "exploring" ? "on" : ""}" data-dm="exploring">I'm exploring a few things</button>
@@ -212,7 +212,7 @@
         ${m === "none" ? `<p class="sub">Perfect. That's exactly what this is for.</p>` : ""}
       </div>
       <button class="btn" data-act="begin">Let's go</button>
-      <p class="sub center" style="font-size:12px">Everything stays on this phone.</p>`;
+      <p class="sub center" style="font-size:12px">All of your data stays on this phone.</p>`;
   };
 
   V.choose = function () {
@@ -245,11 +245,11 @@
     const mi = quiz.m;
     const m = MOTIVES[mi];
     const cur = quiz.mv[mi];
-    const opts = [["a2", "Totally left"], ["a1", "Left"], ["b1", "Right"], ["b2", "Totally right"]];
+    const opts = [["a2", "Totally " + m.at], ["a1", "Kind of " + m.at], ["b1", "Kind of " + m.bt], ["b2", "Totally " + m.bt]];
     return `<div class="progress" aria-hidden="true"><div style="width:${(mi / MOTIVES.length) * 100}%"></div></div>
       <div class="between"><span class="label">${mi + 1} of ${MOTIVES.length} · This or that</span><button class="back" data-act="qexit" style="font-size:13px">Finish later</button></div>
       <h1 class="h1">Which sounds more like you?</h1>
-      <div class="pair"><div>${esc(m.a)}</div><div>${esc(m.b)}</div></div>
+      <div class="pair"><div><span class="label" style="color:var(--lime)">${esc(m.at)}</span><br>${esc(m.a)}</div><div><span class="label" style="color:var(--sky)">${esc(m.bt)}</span><br>${esc(m.b)}</div></div>
       <div class="scale" role="group" aria-label="How much">${opts.map(([v, l]) => `<button class="${cur === v ? "on" : ""}" data-mv="${v}">${l}</button>`).join("")}</div>
       ${mi > 0 ? `<button class="back" data-act="mback">${svg(ICON.back, 18)}Previous</button>` : ""}`;
   };
@@ -547,7 +547,7 @@
       <div class="card"><span class="label">For testing</span>
         <button class="btn ghost small" data-act="export">Copy usage log</button>
         <button class="btn ghost small" data-act="retake">Retake the quiz</button>
-        <button class="btn ghost small" data-act="reset" style="color:#FFB4A8">Erase everything on this phone</button></div>`;
+        <button class="btn ghost small" data-act="reset" style="color:#FFB4A8">Erase all of your data on this phone</button></div>`;
   };
 
   // ---------- Router ----------
@@ -785,7 +785,7 @@
     }
     if (act === "retake") { S.quizDone = false; S.motivesDone = false; save(); quiz = { i: 0, most: null, least: null, picks: [], m: 0, mv: [] }; go("#quiz/style"); }
     if (act === "reset") {
-      if (el.dataset.confirm !== "1") { el.dataset.confirm = "1"; el.textContent = "Tap again to erase everything"; return; }
+      if (el.dataset.confirm !== "1") { el.dataset.confirm = "1"; el.textContent = "Tap again to erase all of your data"; return; }
       S = fresh(); save(); quiz = { i: 0, most: null, least: null, picks: [], m: 0, mv: [] }; go("#");
     }
   });
