@@ -70,7 +70,7 @@
     started: false, name: "", parentPhone: "", dreamMode: "", dreamText: "", dreamArea: "",
     quizDone: false, motivesDone: false, firstMove: "", disc: null, motives: [], source: "quiz",
     xp: 0, watched: {}, requests: [], cards: [], roles: {}, dreamDone: {},
-    daily: { last: "", streak: 0, freezes: 2, entries: [] }, events: []
+    daily: { last: "", streak: 0, freezes: 2, entries: [] }, events: [], challenges: [], checks: {}
   });
   let S;
   try { S = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) { S = fresh(); }
@@ -98,11 +98,40 @@
     check: '<path d="M5 12l5 5 9-10"/>',
     share: '<path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+    coin: '<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .9 3 2.1-1.3 1.9-3 1.9c-1.4 0-2.6-.6-3-1.6M12 6.5v11"/>',
+    bag: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
     target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>'
   };
   const dstr = (d) => { d = d || new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   const daysBetween = (a, b) => Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 86400000);
   const level = () => Math.floor(S.xp / 200) + 1;
+  const money = (r) => /^\$\d+$/.test(r || "") ? +r.slice(1) : 0;
+  const earned = () => S.challenges.filter((c) => c.status === "approved").reduce((a, c) => a + money(c.reward), 0);
+  const openChallenges = () => S.challenges.filter((c) => c.status === "open");
+  const scoutCount = () => S.cards.filter((c) => c.scout).length + Object.keys(S.checks).length;
+  const CH_KINDS = [
+    ["chat", "Chat with a pro", (w) => "15-minute chat with " + (w || "a pro") + " about their work"],
+    ["shadow", "Shadow day", (w) => "Shadow " + (w || "someone") + " at work for a morning"],
+    ["newjob", "Try a new job", () => "Try a job you've never done, even for a day"],
+    ["duo", "Shadow day for two", (w) => "Shadow day for two with " + (w || "someone") + ": bring a friend"],
+    ["friend", "Bring a friend", () => "A friend joins First Shift and earns their first card"],
+    ["scout", "Help the next person", () => "Answer the four questions after your next job"],
+    ["custom", "Write your own", () => ""]
+  ];
+  function payCard(pay, title) {
+    if (!pay) return "";
+    const row = (l, v, w, c) => `<div style="display:flex;flex-direction:column;gap:4px"><div class="between" style="font-size:13px"><span>${l}</span><span style="font-weight:700">${esc(v)}</span></div><div class="bar"><div style="width:${w}%;background:${c}"></div></div></div>`;
+    return `<div class="card"><span class="label" style="color:var(--lime)">What ${esc(title)} pays</span>
+      ${row("Starting", pay.start, pay.w[0], "var(--sky)")}${row("Typical", pay.typical, pay.w[1], "var(--lime)")}${row("Top earners", pay.top, pay.w[2], "#FFB86B")}
+      <div class="between" style="font-size:14px;border-top:1px solid var(--line);padding-top:10px"><span style="color:var(--muted)">To get there</span><span style="text-align:right;max-width:60%">${esc(pay.school)}</span></div>
+      ${pay.note ? `<span style="font-size:13px;line-height:1.4">${esc(pay.note)}</span>` : ""}
+      <span style="font-size:11px;color:var(--muted)">Rough US ranges for this prototype. Real numbers will come from the Bureau of Labor Statistics.</span></div>`;
+  }
+  function earnRows() {
+    const e = earned(), o = openChallenges().length;
+    return `<a class="quest" href="#challenges"><div class="qicon main">${svg(ICON.coin, 20)}</div><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:15px">Challenges${e ? " · $" + e + " earned" : ""}</span><span style="font-size:13px;color:var(--muted)">${o ? o + " open, sponsored by your people" : "Get paid a little for trying real things"}</span></div></a>
+      <a class="quest" href="#hired"><div class="qicon">${svg(ICON.bag, 20)}</div><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:15px">Get hired</span><span style="font-size:13px;color:var(--muted)">Teen jobs near you, a résumé, and what teens say</span></div></a>`;
+  }
 
   let toastTimer;
   function toast(msg) {
@@ -147,6 +176,8 @@
 
   function quests() {
     const q = [];
+    const oc = openChallenges()[0];
+    if (oc) q.push({ title: oc.title, sub: (money(oc.reward) ? oc.reward : oc.reward || "Challenge") + " from " + (oc.sponsor || "your sponsor"), xp: 30, href: "#challenges" });
     if (!S.cards.length) q.push({ main: true, title: "Log your first job, shadow day or chat", sub: "Earn your first card", xp: 150, href: "#newcard" });
     else {
       const explored = AREAS.filter((a) => areaStatus(a.id) === "explored");
@@ -318,8 +349,9 @@
       ${S.quizDone ? `<a class="quest" href="#reveal"><div class="qicon">${svg(ICON.star, 20)}</div><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:15px">Jobs that fit your style</span><span style="font-size:13px;color:var(--muted)">And pros you know who do them</span></div></a>` : ""}
       ${d ? `<a class="quest" href="#dream"><div class="qicon main">${svg(ICON.target, 20)}</div><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span class="label">Your dream path</span><span style="font-weight:700;font-size:17px">${esc(d.title)}</span><span style="font-size:13px;color:var(--muted)">${Object.keys(S.dreamDone).length} steps done</span></div></a>`
         : `<button class="quest" data-go="#settings"><div class="qicon">${svg(ICON.target, 20)}</div><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:15px">Have something in mind?</span><span style="font-size:13px;color:var(--muted)">Add a dream and get a path for it</span></div></button>`}
-      ${S.quizDone ? `<div class="row"><button class="btn" data-act="share">${svg(ICON.share, 18)}Share my card</button></div>
+      ${S.quizDone ? `<div class="row"><a class="btn" href="#sharecard">${svg(ICON.share, 18)}Share my card</a></div>
       <p class="sub center" style="font-size:12px">Only you see your card unless you share it.</p>` : ""}
+      ${earnRows()}
       <div class="card"><span class="h2">Bring a friend along</span><span style="font-size:14px;color:var(--muted)">Exploring is better with someone. Send them the app.</span>
         <button class="btn ghost" data-act="invitefriend">${svg(ICON.share, 18)}Invite a friend · +20 XP</button></div>
       <button class="back" data-go="#settings" style="align-self:center">${svg(ICON.gear, 18)}Settings and parent tools</button>`;
@@ -343,6 +375,7 @@
       <p class="sub">Let's find out what it's really like. Talk to people in it, see it up close, and try a piece of it now. Every step teaches you something, wherever it leads.</p></div>
       ${!S.quizDone ? `<button class="quest" data-act="startstyle"><div class="qicon main">${svg(ICON.star, 20)}</div><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:15px">Which part of this world fits you?</span><span style="font-size:13px;color:var(--muted)">Unlock your play style · 2 minutes</span></div><span class="xp main">+100</span></button>` : ""}
       ${needArea ? `<div class="card"><span class="label">Which area is closest?</span><div class="chips">${AREAS.map((a) => `<button class="chip" data-darea="${a.id}">${a.name}</button>`).join("")}</div></div>` : ""}
+      ${payCard(window.PAY_DREAM[d.id], d.title.toLowerCase())}
       ${box("world", d.world, "The whole world around it", "world")}
       ${box("ask", d.ask, "People to ask", "ask")}
       ${box("shadow", d.shadow, "Ways to see it up close", "shadow")}
@@ -359,6 +392,7 @@
         return `<div class="tile ${s}">${svg(s === "locked" ? ICON.lock : a.icon, 22, s === "explored" ? 'style="color:var(--lime)"' : "")}<b style="font-weight:${s === "locked" ? 400 : 700}">${a.name}</b></div>`;
       }).join("")}</div>
       <p class="sub" style="font-size:12px">Solid: you tried a job or shadow day there. Outlined: you watched, asked or dreamed about it.</p>
+      ${earnRows()}
       <span class="label">Quests</span>
       <div style="display:flex;flex-direction:column;gap:10px">${quests().map(questRow).join("")}</div>`;
   };
@@ -393,6 +427,7 @@
         <span style="font-size:16px">${esc(p.job)}</span>
         <span class="sub">${[p.relation, areaName(p.area)].filter(Boolean).map(esc).join(" · ")}</span>
       </div>
+      ${payCard(window.PAY_JOB[p.job], "this job")}
       ${!answerCount(p) ? `<div class="card"><span class="label">Video answers coming soon</span><span style="font-size:15px;line-height:1.4">${esc(p.name)} will answer these. Want to hear it sooner? Ask for a chat below.</span>
         <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.4">${p.videos.map((v) => `<li>${esc(v.q)}</li>`).join("")}</ol></div>` : ""}
       ${p.videos.map((v, i) => {
@@ -538,6 +573,9 @@
         <div class="field"><label for="s_ph">Parent's cell number</label><input id="s_ph" type="tel" value="${esc(S.parentPhone)}"></div>
         <div class="field"><label for="s_dt">Something you have in mind (leave blank if not)</label><input id="s_dt" value="${S.dreamMode === "idea" ? esc(S.dreamText) : ""}" placeholder="Pro basketball player, vet..."></div>
         <button class="btn small" data-act="saveyou">Save</button></div>
+      <div class="card"><span class="label">Parent tools · challenges</span>
+        <p class="sub" style="font-size:13px">Put a little money behind something you want your teen to try, and approve challenges they finish. You pay it out yourself.</p>
+        <a class="btn small" href="#sponsor">Sponsor or approve challenges${S.challenges.filter((c) => c.status === "claimed").length ? " · " + S.challenges.filter((c) => c.status === "claimed").length + " waiting" : ""}</a></div>
       <div class="card"><span class="label">Parent tools · real TTI scores</span>
         <p class="sub" style="font-size:13px">Type the four DISC scores (0 to 100) from the teen's TTI report. They replace the quiz.</p>
         <div class="grid3" style="grid-template-columns:repeat(4,minmax(0,1fr))">${["D", "I", "S", "C"].map((k) => `<div class="field"><label for="t_${k}">${STYLES[k].stat}</label><input id="t_${k}" type="number" min="0" max="100" inputmode="numeric" value="${d[k]}"></div>`).join("")}</div>
@@ -548,6 +586,155 @@
         <button class="btn ghost small" data-act="export">Copy usage log</button>
         <button class="btn ghost small" data-act="retake">Retake the quiz</button>
         <button class="btn ghost small" data-act="reset" style="color:#FFB4A8">Erase all of your data on this phone</button></div>`;
+  };
+
+
+  // ---------- Earn: challenges ----------
+  let spDraft = { kind: "chat", who: "", reward: "$10", sponsor: "", custom: "" };
+  function chRow(c, teen) {
+    const right = c.status === "approved" ? `<span class="tag" style="background:var(--lime);color:var(--ink)">Paid</span>`
+      : c.status === "claimed" ? `<span class="tag" style="background:var(--line);color:var(--muted)">Waiting for OK</span>`
+      : teen ? `<button class="chip" data-chdone="${c.id}">I did it</button>` : `<button class="chip" data-chdel="${c.id}">Remove</button>`;
+    return `<div class="card" style="flex-direction:row;align-items:center;gap:12px;padding:12px 14px"><div style="flex:1;display:flex;flex-direction:column;gap:3px">
+      <span style="font-weight:600;font-size:15px;line-height:1.3">${esc(c.title)}</span>
+      <span style="font-size:12px;color:var(--muted)">${esc((money(c.reward) ? c.reward : c.reward || "") + (c.sponsor ? " · from " + c.sponsor : ""))}</span></div>${right}</div>`;
+  }
+  V.challenges = function () {
+    tabs("map");
+    const open = S.challenges.filter((c) => c.status === "open"), wait = S.challenges.filter((c) => c.status === "claimed"), done = S.challenges.filter((c) => c.status === "approved");
+    return `${backBtn("#map", "Map")}
+      <div style="background:linear-gradient(135deg,#C8F560,#7CC8FF);color:var(--ink);border-radius:22px;padding:16px 18px;display:flex;flex-direction:column;gap:4px">
+        <span class="label" style="color:var(--ink)">Earned so far</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:40px;line-height:1">$${earned()}</span>
+        <span style="font-size:13px;font-weight:600">Your sponsors pay you directly</span></div>
+      ${open.length ? `<span class="label">Open</span>${open.map((c) => chRow(c, true)).join("")}` : `<div class="card" style="border-style:dashed;border-color:var(--dim)"><span style="font-weight:600">No challenges yet</span><span class="sub">A parent, grandparent or pro can put a few dollars behind something real: a chat, a shadow day, a new job. Ask one to set it up on your phone.</span>
+        <button class="btn ghost" data-act="asksponsor">${svg(ICON.share, 18)}Ask a parent to sponsor one</button></div>`}
+      ${wait.length ? `<span class="label">Waiting for your sponsor's OK</span>${wait.map((c) => chRow(c, true)).join("")}` : ""}
+      ${done.length ? `<span class="label">Done</span>${done.map((c) => chRow(c, true)).join("")}` : ""}
+      <p class="sub center" style="font-size:12px">Money only for things you do in the real world. Nothing for taps in the app.</p>
+      <a class="back" href="#sponsor" style="align-self:center">For parents: sponsor or approve</a>`;
+  };
+  V.sponsor = function () {
+    tabs(null);
+    const d = spDraft;
+    const kind = CH_KINDS.find((k) => k[0] === d.kind);
+    const needsWho = ["chat", "shadow", "duo"].includes(d.kind);
+    const wait = S.challenges.filter((c) => c.status === "claimed"), open = S.challenges.filter((c) => c.status === "open");
+    return `${backBtn("#challenges", "Challenges")}
+      <div style="display:flex;flex-direction:column;gap:4px"><span class="label">For parents and sponsors</span><h1 class="h1">Sponsor a challenge</h1>
+      <p class="sub">Put a little money behind something you want ${esc(S.name || "your teen")} to try. You pay it out yourself; the app just keeps track.</p></div>
+      ${wait.length ? `<div class="card" style="border-color:var(--lime)"><span class="label" style="color:var(--lime)">Waiting for your OK</span>
+        ${wait.map((c) => `<div class="between" style="gap:10px"><span style="font-size:15px;line-height:1.35">${esc(c.title)}<br><span style="font-size:12px;color:var(--muted)">${esc(c.reward)}${c.card ? " · card earned" : ""}</span></span><button class="chip on" data-chok="${c.id}">Approve</button></div>`).join("")}</div>` : ""}
+      <div class="card"><span class="label">Pick one</span>
+        <div class="chips">${CH_KINDS.map((k) => `<button class="chip ${d.kind === k[0] ? "on" : ""}" data-spk="${k[0]}">${k[1]}</button>`).join("")}</div>
+        ${needsWho ? `<span class="label">With who</span><div class="chips">${window.PROS.map((p) => `<button class="chip ${d.who === p.name ? "on" : ""}" data-spw="${esc(p.name)}">${esc(p.name)}</button>`).join("")}</div>` : ""}
+        ${d.kind === "custom" ? `<div class="field"><label for="sp_c">The challenge</label><input id="sp_c" value="${esc(d.custom)}" placeholder="Ask your boss what they'd do differently..."></div>` : `<span style="font-size:15px;font-weight:600;line-height:1.35">${esc(kind[2](d.who))}</span>`}
+        <span class="label">Reward</span>
+        <div class="chips">${["$5", "$10", "$25"].map((r) => `<button class="chip ${d.reward === r ? "on" : ""}" data-spr="${r}">${r}</button>`).join("")}<button class="chip ${money(d.reward) ? "" : "on"}" data-spr="other">Not money</button></div>
+        ${money(d.reward) ? "" : `<div class="field"><label for="sp_o">What they get</label><input id="sp_o" value="${esc(d.reward === "other" ? "" : d.reward)}" placeholder="Later curfew, dinner out, gas money..."></div>`}
+        <div class="field"><label for="sp_s">From</label><input id="sp_s" value="${esc(d.sponsor)}" placeholder="Mom, Dad, Grandma, Uncle Ryan..."></div>
+        <button class="btn" data-act="addch">Add this challenge</button></div>
+      ${open.length ? `<span class="label">Open challenges</span>${open.map((c) => chRow(c, false)).join("")}` : ""}
+      <p class="sub" style="font-size:12px">Use this on your teen's phone for now. Separate parent logins come later.</p>`;
+  };
+
+  // ---------- Earn: get hired ----------
+  let hireAge = 0;
+  V.hired = function () {
+    tabs("map");
+    const list = window.EMPLOYERS.filter((e) => !hireAge || e.minAge <= hireAge);
+    const jobs = S.cards.filter((c) => c.kind !== "Chat");
+    const refs = [...new Set(S.requests.map((r) => r.pro))].map((id) => window.PROS.find((p) => p.id === id)).filter(Boolean);
+    const sc = scoutCount();
+    return `${backBtn("#map", "Map")}
+      <div style="display:flex;flex-direction:column;gap:4px"><h1 class="h1">Get hired</h1><p class="sub">Places that hire teens, what each one teaches, and what teens who worked there say.</p></div>
+      <div class="chips"><span class="label" style="align-self:center;margin-right:4px">I'm</span>${[0, 14, 15, 16].map((a) => `<button class="chip ${hireAge === a ? "on" : ""}" data-hage="${a}">${a ? a : "Any age"}</button>`).join("")}</div>
+      ${list.map((e) => `<a class="card" href="#employer/${e.id}" style="text-decoration:none;color:inherit;gap:6px;padding:12px 14px">
+        <div class="between"><span style="font-weight:600;font-size:15px">${esc(e.name)}</span><span style="font-weight:700;color:var(--lime)">${esc(e.pay)}</span></div>
+        <div class="chips"><span class="chip" style="cursor:default">Hires ${e.minAge}+</span><span class="chip" style="cursor:default">Teaches: ${esc(e.teaches)}</span></div></a>`).join("")}
+      ${list.length ? "" : `<p class="sub">Nothing on this list hires that young yet. Babysitting, yard work and pet sitting for neighbors all count as jobs.</p>`}
+      <div class="card"><span class="label" style="color:var(--lime)">Your edge</span>
+        <div class="between"><span style="font-size:14px">Résumé from your ${jobs.length} card${jobs.length === 1 ? "" : "s"}</span><a href="#resume" style="color:var(--lime);font-weight:600;font-size:14px">${jobs.length ? "View" : "Start"}</a></div>
+        <div class="between"><span style="font-size:14px">${refs.length ? "Possible references: " + esc(refs.map((p) => p.name).join(", ")) : "References: ask a pro for a chat first"}</span></div>
+        <div class="between"><span style="font-size:14px">Scout badge</span><span style="font-size:14px;color:${sc >= 5 ? "var(--lime)" : "var(--muted)"}">${sc >= 5 ? "Earned" : sc + " of 5"}</span></div></div>
+      <p class="sub" style="font-size:12px">Sample employers for the prototype. Real listings will come from employers who post, checked by teens who worked there.</p>`;
+  };
+  V.employer = function (id) {
+    tabs("map");
+    const e = window.EMPLOYERS.find((x) => x.id === id);
+    if (!e) return backBtn("#hired") + '<p class="sub">Not found.</p>';
+    const mine = S.cards.filter((c) => c.scout && c.scout.emp === e.id).map((c) => c.scout);
+    const t = e.teens, n = t.n + mine.length, yes = t.yes + mine.filter((m) => m.rec === "Yes").length;
+    const tips = mine.filter((m) => m.tip).map((m) => m.tip + " (you)").concat(t.tips);
+    const ck = S.checks[e.id];
+    const stat = (v, l) => `<div style="flex:1;background:var(--bg);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:2px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px">${esc(v)}</span><span style="font-size:11px;color:var(--muted);line-height:1.3">${l}</span></div>`;
+    return `${backBtn("#hired", "Get hired")}
+      <div style="display:flex;flex-direction:column;gap:6px"><span class="label">Employer</span><h1 class="h1">${esc(e.name)}</h1>
+      <div class="chips"><span class="chip" style="cursor:default">Hires ${e.minAge}+</span><span class="chip" style="cursor:default">${esc(e.pay)}</span><span class="chip" style="cursor:default">Teaches: ${esc(e.teaches)}</span></div></div>
+      <div class="card"><span class="label" style="color:var(--lime)">What teens who worked here say</span><span style="font-size:12px;color:var(--muted)">From ${n} teen${n === 1 ? "" : "s"}${mine.length ? ", including you" : ""} · sample answers</span>
+        <div style="display:flex;gap:8px">${stat(t.age, "usual hiring age")}${stat(t.pay, "real pay per hour")}${stat(yes + " of " + n, "would tell a friend")}</div></div>
+      <div class="card"><span class="label">Wish I'd known</span>${tips.map((x) => `<span style="font-size:14px;line-height:1.45">"${esc(x)}"</span>`).join("")}</div>
+      <div class="card"><span class="label" style="color:var(--sky)">Quick check</span><span style="font-size:15px;font-weight:600">${esc(e.check)}</span>
+        <div class="chips">${["Yes", "No", "Not sure"].map((a) => `<button class="chip ${ck === a ? "on" : ""}" data-check="${e.id}:${a}">${a}${a === "Yes" ? " · " + (e.checkYes + (ck === "Yes" ? 1 : 0)) : a === "No" ? " · " + (e.checkNo + (ck === "No" ? 1 : 0)) : ""}</button>`).join("")}</div>
+        <span style="font-size:12px;color:var(--muted)">Answer if you applied here or know someone who did. +10 XP</span></div>
+      <a class="btn ghost" href="#newcard" data-act="cardfor" data-emp="${e.id}">I worked here: earn a card</a>`;
+  };
+  V.resume = function () {
+    tabs("map");
+    return `${backBtn("#hired", "Get hired")}<h1 class="h1">Your résumé</h1><p class="sub">Built from your cards. Copy it into an application or send it to a parent to print.</p>
+      <div class="card"><pre style="white-space:pre-wrap;font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5;margin:0">${esc(resumeText())}</pre></div>
+      <div class="row"><button class="btn" data-act="copyresume">Copy</button><button class="btn ghost" data-act="shareresume">${svg(ICON.share, 18)}Send</button></div>
+      ${S.cards.length ? "" : `<a class="back" href="#newcard" style="align-self:center">Earn a card to fill it in</a>`}`;
+  };
+  function resumeText() {
+    const st = S.quizDone ? STYLES[topStyle()] : null;
+    const exp = S.cards.filter((c) => c.kind !== "Chat").slice().reverse();
+    const refs = [...new Set(S.requests.map((r) => r.pro))].map((id) => window.PROS.find((p) => p.id === id)).filter(Boolean);
+    const L = [S.name || "Your name", ""];
+    if (st) L.push("About me", st.line + (S.motives.length ? " Motivated by: " + S.motives.join(", ").toLowerCase() + "." : ""), "");
+    L.push("Experience");
+    if (exp.length) exp.forEach((c) => { L.push("- " + c.title + (c.where ? ", " + c.where : "") + (c.length ? " (" + c.length + ")" : "")); if (c.learned) L.push("  What I learned: " + c.learned); });
+    else L.push("- Your jobs, shadow days and things you tried show up here.");
+    L.push("", "References", refs.length ? refs.map((p) => p.name + ", " + p.job).join("\n") + "\n(Ask before listing them.)" : "Available on request");
+    return L.join("\n");
+  }
+
+  // ---------- Help the next person ----------
+  let scoutDraft = null;
+  V.scout = function (id) {
+    tabs("cards");
+    const c = S.cards.find((x) => String(x.id) === String(id));
+    if (!c) return backBtn("#cards") + '<p class="sub">Card not found.</p>';
+    const d = scoutDraft && scoutDraft.id === c.id ? scoutDraft : (scoutDraft = Object.assign({ id: c.id, emp: c.emp || "", age: "", pay: "", rec: "", tip: "" }, c.scout || {}));
+    const q = (label, key, opts) => `<span style="font-size:14px;font-weight:600">${label}</span><div class="chips">${opts.map((o) => `<button class="chip ${d[key] === o ? "on" : ""}" data-sc="${key}:${esc(o)}">${esc(o)}</button>`).join("")}</div>`;
+    return `<div style="display:flex;flex-direction:column;gap:4px"><span class="label" style="color:var(--lime)">Card saved · ${esc(c.title)}</span><h1 class="h1">Help the next person</h1>
+      <p class="sub">Four quick answers. Your card stays private. Only these go public, mixed with other teens' answers.</p></div>
+      <div class="card">
+        <span style="font-size:14px;font-weight:600">Where was it?</span><div class="chips">${window.EMPLOYERS.map((e) => `<button class="chip ${d.emp === e.id ? "on" : ""}" data-sc="emp:${e.id}">${esc(e.name)}</button>`).join("")}<button class="chip ${d.emp === "other" ? "on" : ""}" data-sc="emp:other">Not listed</button></div>
+        ${q("How old were you when they hired you?", "age", ["14", "15", "16", "17+"])}
+        ${q("What did you really make per hour?", "pay", ["$12", "$13", "$14", "$15", "$16+"])}
+        ${q("Would you tell a friend to work here?", "rec", ["Yes", "Maybe", "No"])}
+        <div class="field"><label for="sc_tip">One thing you wish you knew before you started</label><textarea id="sc_tip" placeholder="Apply early, wear old shoes...">${esc(d.tip)}</textarea></div>
+        <span style="font-size:11px;color:var(--muted)">No names of coworkers or managers.</span></div>
+      <button class="btn" data-act="savescout">Share with the next person · +40 XP</button>
+      <button class="back" data-go="#cards" style="align-self:center">Skip for now</button>`;
+  };
+
+  // ---------- Share-ready card ----------
+  V.sharecard = function () {
+    tabs(null);
+    if (!S.quizDone) return backBtn("#me") + '<p class="sub">Unlock your play style first.</p>';
+    const st = STYLES[topStyle()];
+    return `${backBtn("#me")}
+      <div style="border-radius:28px;background:radial-gradient(circle at 30% 15%,#2E3A12,#0F1020 65%);border:1px solid var(--line);padding:32px 20px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center">
+        <span class="label" style="color:var(--lime)">My play style</span>
+        <div style="width:110px;height:110px;border-radius:30px;background:var(--lime);color:var(--ink);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:52px">${esc((S.name || "?").charAt(0).toUpperCase())}</div>
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:36px;line-height:1.1">${esc(st.name)}</span>
+        <span style="font-size:16px;color:var(--muted)">${esc(st.line)}</span>
+        ${S.motives.length ? `<div class="chips" style="justify-content:center">${S.motives.map((m) => `<span class="chip" style="cursor:default">${esc(m)}</span>`).join("")}</div>` : ""}
+        <div class="card" style="padding:12px 16px;font-size:14px;line-height:1.4">Jobs that fit ${esc(st.name.replace("The ", ""))}s:<br><b>${esc(st.jobs.slice(0, 4).join(" · "))}</b></div>
+        <span style="font-weight:700;color:var(--lime)">What's yours? Find out on First Shift</span></div>
+      <p class="sub center" style="font-size:12px">Screenshot it for your story, or send it.</p>
+      <div class="row"><button class="btn" data-act="share">${svg(ICON.share, 18)}Send to a friend</button></div>`;
   };
 
   // ---------- Router ----------
@@ -688,8 +875,64 @@
       el.classList.toggle("on"); save(); return;
     }
 
+    if (ds.chdone) {
+      const c = S.challenges.find((x) => String(x.id) === ds.chdone); if (!c) return;
+      c.status = "claimed"; c.claimed = dstr(); save(); log("challenge_claim", c.kind);
+      if (["chat", "shadow", "newjob", "duo"].includes(c.kind)) {
+        cardDraft = { kind: c.kind === "chat" ? "Chat" : c.kind === "newjob" ? "Job" : "Shadow day", title: "", where: c.who || "", area: "", length: "", loved: "", drained: "", learned: "", next: "" };
+        toast("Now earn the card so your sponsor can OK it"); go("#newcard");
+      } else { toast("Sent to your sponsor for an OK"); render(); }
+      return;
+    }
+    if (ds.chok) { const c = S.challenges.find((x) => String(x.id) === ds.chok); if (c) { c.status = "approved"; c.paid = dstr(); save(); log("challenge_ok", c.kind); toast(money(c.reward) ? "Approved. Pay " + c.reward + " when you can." : "Approved"); render(); } return; }
+    if (ds.chdel) { S.challenges = S.challenges.filter((x) => String(x.id) !== ds.chdel); save(); render(); return; }
+    if (ds.spk) { syncSp(); spDraft.kind = ds.spk; render(); return; }
+    if (ds.spw) { syncSp(); spDraft.who = ds.spw; render(); return; }
+    if (ds.spr) { syncSp(); spDraft.reward = ds.spr === "other" ? "other" : ds.spr; render(); return; }
+    if (ds.hage != null && ds.hage !== undefined && el.hasAttribute("data-hage")) { hireAge = +ds.hage; render(); return; }
+    if (ds.check) {
+      const [id, a] = ds.check.split(":");
+      if (!S.checks[id]) { S.xp += 10; toast("+10 XP  Thanks, scout"); }
+      S.checks[id] = a; save(); log("quick_check", { id, a }); render(); return;
+    }
+    if (ds.sc) {
+      const i = ds.sc.indexOf(":"), k = ds.sc.slice(0, i), v = ds.sc.slice(i + 1);
+      const t = $("#sc_tip"); if (t) scoutDraft.tip = t.value;
+      scoutDraft[k] = v; render(); return;
+    }
     const act = ds.act;
     if (!act) return;
+    if (act === "addch") {
+      syncSp();
+      const d = spDraft, kind = CH_KINDS.find((k) => k[0] === d.kind);
+      const title = d.kind === "custom" ? d.custom.trim() : kind[2](d.who);
+      if (!title) { toast("Write the challenge"); return; }
+      if (["chat", "shadow", "duo"].includes(d.kind) && !d.who) { toast("Pick who it's with"); return; }
+      const reward = money(d.reward) ? d.reward : (d.reward === "other" ? "" : d.reward).trim();
+      if (!reward) { toast("Add a reward"); return; }
+      S.challenges.push({ id: Date.now(), kind: d.kind, who: d.who, title, reward, sponsor: d.sponsor.trim(), status: "open", added: dstr() });
+      save(); log("challenge_add", d.kind); spDraft = { kind: "chat", who: "", reward: "$10", sponsor: d.sponsor, custom: "" };
+      toast("Challenge added"); render(); return;
+    }
+    if (act === "asksponsor") {
+      const body = `Hi! It's ${S.name || "me"}. Would you sponsor a challenge for me on First Shift? Grab my phone, open Settings, then Parent tools. (sent from First Shift)`;
+      log("ask_sponsor"); sendRequest(body, null); return;
+    }
+    if (act === "savescout") {
+      const t = $("#sc_tip"); if (t) scoutDraft.tip = t.value.trim();
+      const d = scoutDraft;
+      if (!d.emp || !d.age || !d.pay || !d.rec) { toast("Answer the four questions"); return; }
+      const c = S.cards.find((x) => x.id === d.id);
+      const first = !c.scout;
+      c.scout = { emp: d.emp, age: d.age, pay: d.pay, rec: d.rec, tip: d.tip };
+      if (first) { S.xp += 40; const ch = S.challenges.find((x) => x.status === "open" && x.kind === "scout"); if (ch) { ch.status = "claimed"; ch.card = c.id; } }
+      save(); log("scout", { emp: d.emp }); scoutDraft = null;
+      toast(first ? "+40 XP  You helped the next person" : "Updated");
+      go(d.emp !== "other" ? "#employer/" + d.emp : "#cards"); return;
+    }
+    if (act === "copyresume") { if (navigator.clipboard) navigator.clipboard.writeText(resumeText()).then(() => toast("Copied")); log("resume_copy"); return; }
+    if (act === "shareresume") { log("resume_share"); if (navigator.share) navigator.share({ title: "My résumé", text: resumeText() }).catch(() => {}); else window.location.href = "sms:?&body=" + encodeURIComponent(resumeText()); return; }
+    if (act === "cardfor") { cardDraft = { kind: "Job", title: "", where: (window.EMPLOYERS.find((e) => e.id === ds.emp) || {}).name || "", area: (window.EMPLOYERS.find((e) => e.id === ds.emp) || {}).area || "", length: "", loved: "", drained: "", learned: "", next: "", emp: ds.emp }; return; }
     if (act === "begin") {
       S.name = ($("#nm").value || "").trim();
       S.parentPhone = ($("#ph").value || "").trim();
@@ -731,7 +974,7 @@
     }
     if (act === "share") {
       const st = topStyle();
-      const text = `My play style is ${STYLES[st].name}: ${STYLES[st].line} ${S.motives.length ? " What fires me up: " + S.motives.join(", ") + "." : ""}`;
+      const text = `My play style is ${STYLES[st].name}: ${STYLES[st].line}${S.motives.length ? " What fires me up: " + S.motives.join(", ") + "." : ""} What's yours? ${SITE}`;
       log("share");
       if (navigator.share) navigator.share({ title: "My First Shift card", text }).catch(() => {});
       else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast("Copied to share"));
@@ -765,7 +1008,10 @@
       c.xp = c.kind === "Job" ? 150 : c.kind === "Shadow day" ? 100 : 50;
       c.date = dstr(); c.id = Date.now();
       S.cards.push(c); S.xp += c.xp; save(); log("card", { kind: c.kind, area: c.area });
-      cardDraft = null; toast("Card earned  +" + c.xp + " XP"); go("#cards");
+      const pend = S.challenges.find((x) => x.status === "claimed" && !x.card && x.kind !== "scout" && x.kind !== "friend");
+      if (pend) pend.card = c.id;
+      cardDraft = null; save(); toast("Card earned  +" + c.xp + " XP");
+      if (c.kind === "Job") { scoutDraft = null; go("#scout/" + c.id); } else go("#cards");
     }
     if (act === "saveyou") {
       S.name = $("#s_nm").value.trim(); S.parentPhone = $("#s_ph").value.trim();
@@ -790,6 +1036,11 @@
     }
   });
 
+  function syncSp() {
+    const c = $("#sp_c"), o = $("#sp_o"), sp = $("#sp_s");
+    if (c) spDraft.custom = c.value; if (sp) spDraft.sponsor = sp.value;
+    if (o) spDraft.reward = o.value || "other";
+  }
   function syncDraft() {
     if (!cardDraft) return;
     document.querySelectorAll("[data-f]").forEach((i) => { cardDraft[i.dataset.f] = i.value; });
