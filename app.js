@@ -78,6 +78,14 @@
       jobs: ["Engineer", "Electrician", "Programmer", "Accountant", "Lab tech", "Pharmacist"] }
   };
 
+  const HEADLINES = [
+    "Make money now. Figure out your future on the way.",
+    "Get paid. Try stuff. Find your thing.",
+    "Earn money now, with your friends, and find out what you're good at.",
+    "Get paid to find out what you're into.",
+    "Make money. Make moves. Figure out the rest later.",
+    "Your first job doesn't have to be your last guess."
+  ];
   const PROMPTS = [
     "What did you notice at work or school today?",
     "When did time go fast today?",
@@ -129,6 +137,10 @@
   const dstr = (d) => { d = d || new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   const daysBetween = (a, b) => Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 86400000);
   const level = () => Math.floor(S.xp / 200) + 1;
+  function headIdx() {
+    if (S.headFirst == null) { S.headFirst = Math.floor(Math.random() * HEADLINES.length); S.head = S.headFirst; S.headTaps = 0; save(); log("headline_first", HEADLINES[S.headFirst]); }
+    return S.head;
+  }
   const money = (r) => /^\$\d+$/.test(r || "") ? +r.slice(1) : 0;
   const earned = () => S.challenges.filter((c) => c.status === "approved").reduce((a, c) => a + money(c.reward), 0);
   const openChallenges = () => S.challenges.filter((c) => c.status === "open");
@@ -248,7 +260,8 @@
     const m = S.dreamMode;
     return `<div style="display:flex;flex-direction:column;gap:6px;margin-top:12px">
         <span class="label">First Shift</span>
-        <h1 class="h1">Make money now. Figure out your future on the way.</h1>
+        <button class="h1" data-act="nexthead" aria-label="Headline. Tap to see another." style="all:unset;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:26px;line-height:1.15">${esc(HEADLINES[headIdx()])}</button>
+        <span style="font-size:12px;color:var(--lime);font-weight:600">${S.headTaps ? "Tap again for another" : "Tap the headline to see another"} · ${headIdx() + 1} of ${HEADLINES.length}</span>
         <p class="sub">Find jobs that pay and teach you something, earn a little for trying new things, and do it with your friends.</p>
       </div>
       <div class="card">
@@ -631,6 +644,7 @@
         <div class="chips">${ALL_MOTIVE_TAGS.map((t) => `<button class="chip ${S.motives.includes(t) ? "on" : ""}" data-mtag="${esc(t)}">${esc(t)}</button>`).join("")}</div>
         <button class="btn small" data-act="savetti">Use these scores</button></div>
       <div class="card"><span class="label">For testing</span>
+        ${S.headFirst != null ? `<span style="font-size:13px;line-height:1.45;color:var(--muted)">Headline test: first saw "${esc(HEADLINES[S.headFirst])}" and started on "${esc(HEADLINES[S.head])}" after ${S.headTaps || 0} tap${S.headTaps === 1 ? "" : "s"}.</span>` : ""}
         <button class="btn ghost small" data-act="export">Copy usage log</button>
         <button class="btn ghost small" data-act="retake">Retake the quiz</button>
         <button class="btn ghost small" data-act="reset" style="color:#FFB4A8">Erase all of your data on this phone</button></div>`;
@@ -1001,6 +1015,12 @@
     if (act === "copyresume") { if (navigator.clipboard) navigator.clipboard.writeText(resumeText()).then(() => toast("Copied")); log("resume_copy"); return; }
     if (act === "shareresume") { log("resume_share"); if (navigator.share) navigator.share({ title: "My résumé", text: resumeText() }).catch(() => {}); else window.location.href = "sms:?&body=" + encodeURIComponent(resumeText()); return; }
     if (act === "cardfor") { cardDraft = { kind: "Job", title: "", where: (window.EMPLOYERS.find((e) => e.id === ds.emp) || {}).name || "", area: (window.EMPLOYERS.find((e) => e.id === ds.emp) || {}).area || "", length: "", loved: "", drained: "", learned: "", next: "", emp: ds.emp }; return; }
+    if (act === "nexthead") {
+      const nm = $("#nm"), ph = $("#ph"), dt = $("#dt");
+      if (nm) S.name = nm.value; if (ph) S.parentPhone = ph.value; if (dt) S.dreamText = dt.value;
+      S.head = (headIdx() + 1) % HEADLINES.length; S.headTaps = (S.headTaps || 0) + 1;
+      save(); log("headline_tap", HEADLINES[S.head]); render(); return;
+    }
     if (act === "begin") {
       S.name = ($("#nm").value || "").trim();
       S.parentPhone = ($("#ph").value || "").trim();
@@ -1008,7 +1028,7 @@
       if (!S.name) { toast("Add your first name"); $("#nm").focus(); return; }
       if (!S.dreamMode) { toast("Pick an answer to the question"); return; }
       if (S.dreamMode === "idea" && !S.dreamText) { toast("Tell us what it is"); $("#dt").focus(); return; }
-      S.started = true; save(); log("start", { mode: S.dreamMode, dream: S.dreamText }); go("#choose");
+      S.started = true; save(); log("start", { mode: S.dreamMode, dream: S.dreamText, headline: HEADLINES[headIdx()], first: HEADLINES[S.headFirst], taps: S.headTaps || 0 }); go("#choose");
     }
     if (act === "startstyle") { quiz.most = null; quiz.least = null; log("style_start", { resume: quiz.i }); go("#quiz/style"); }
     if (act === "startmotives") { log("motives_start", { resume: quiz.m }); go("#quiz/motives"); }
@@ -1096,7 +1116,7 @@
       S.disc = disc; S.source = "tti"; S.quizDone = true; S.motivesDone = true; S.firstMove = S.firstMove || "tti"; save(); log("tti_override"); toast("TTI scores saved"); go("#me");
     }
     if (act === "export") {
-      const data = JSON.stringify({ exported: new Date().toISOString(), xp: S.xp, cards: S.cards.length, streak: S.daily.streak, events: S.events });
+      const data = JSON.stringify({ exported: new Date().toISOString(), headline: { first: HEADLINES[S.headFirst], picked: HEADLINES[S.head], taps: S.headTaps || 0 }, xp: S.xp, cards: S.cards.length, streak: S.daily.streak, events: S.events });
       if (navigator.clipboard) navigator.clipboard.writeText(data).then(() => toast("Usage log copied")); else toast("Copy not supported here");
     }
     if (act === "retake") { S.quizDone = false; S.motivesDone = false; S.style2Done = false; S.motives2Done = false; S.discPacks = {}; S.mvPacks = {}; save(); quiz = { i: 0, most: null, least: null, picks: [], m: 0, mv: [] }; go("#quiz/style"); }
