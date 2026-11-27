@@ -42,6 +42,30 @@
     { a: "I like a clear system to follow", at: "Structure", b: "I like figuring it out my own way", bt: "Freedom" }
   ];
   const ALL_MOTIVE_TAGS = MOTIVES.flatMap((m) => [m.at, m.bt]);
+  // Optional second packs: more answers, sharper results
+  const QUIZ2 = [
+    { q: "On a road trip, you're the one who...", o: { D: "Picks the route", I: "Runs the playlist and the jokes", S: "Makes sure everyone's comfortable", C: "Checks the gas, the map and the timing" } },
+    { q: "A teacher springs a surprise assignment. You...", o: { D: "Start right away to get it done", I: "Talk it over with friends first", S: "Wish you'd had a heads-up", C: "Ask exactly what's expected" } },
+    { q: "Your friends would call you...", o: { D: "Bold", I: "Fun", S: "Loyal", C: "Careful" } },
+    { q: "In a game, you love...", o: { D: "Winning", I: "The trash talk and the crowd", S: "Playing with your people", C: "Figuring out the strategy" } },
+    { q: "Plans change at the last minute. You...", o: { D: "Take charge of the new plan", I: "Roll with it. It's an adventure", S: "Need a minute to adjust", C: "Want to know why it changed" } },
+    { q: "A friend is upset. You...", o: { D: "Help fix the problem", I: "Cheer them up", S: "Listen as long as they need", C: "Help them think it through step by step" } },
+    { q: "Your room is...", o: { D: "Whatever. You're rarely in it", I: "Full of stuff from fun times", S: "Cozy, same setup for years", C: "Organized. Everything has a place" } },
+    { q: "When you disagree with someone, you...", o: { D: "Say so directly", I: "Try to win them over", S: "Let it go to keep the peace", C: "Bring up the facts" } },
+    { q: "The best part of a job would be...", o: { D: "Being in charge of something", I: "The people", S: "A team that has each other's backs", C: "Doing it really well" } },
+    { q: "When you get feedback, you want it...", o: { D: "Short and direct", I: "Friendly", S: "Kind and in private", C: "Specific and detailed" } },
+    { q: "You'd rather be known for...", o: { D: "Getting results", I: "Making people feel good", S: "Being dependable", C: "Being right" } },
+    { q: "Starting something new, you...", o: { D: "Jump in", I: "Tell everyone about it", S: "Ease in slowly", C: "Research it first" } }
+  ];
+  const MOTIVES2 = [
+    { a: "I read about stuff just because it's interesting", at: "Curious", b: "I only learn what I'll actually use", bt: "Hands-on" },
+    { a: "I'd pick the job that pays more", at: "Earner", b: "I'd pick the job that helps more", bt: "Giver" },
+    { a: "I care how my stuff looks", at: "Good vibes", b: "I care that my stuff works", bt: "Practical" },
+    { a: "I'd stop to help someone even if it made me late", at: "Helper", b: "I'd stay on track and help after", bt: "Goal-getter" },
+    { a: "I want to be the captain", at: "Leader", b: "I want to be the one the captain counts on", bt: "Teammate" },
+    { a: "I like knowing the rules up front", at: "Structure", b: "I like making it up as I go", bt: "Freedom" }
+  ];
+  const SETS = { style: QUIZ, style2: QUIZ2 }, MSETS = { motives: MOTIVES, motives2: MOTIVES2 };
 
   const STYLES = {
     D: { name: "The Driver", stat: "Drive", line: "Takes charge. Gets it done.", thrive: "You can move fast, make calls, and see results.",
@@ -70,7 +94,7 @@
     started: false, name: "", parentPhone: "", dreamMode: "", dreamText: "", dreamArea: "",
     quizDone: false, motivesDone: false, firstMove: "", disc: null, motives: [], source: "quiz",
     xp: 0, watched: {}, requests: [], cards: [], roles: {}, dreamDone: {},
-    daily: { last: "", streak: 0, freezes: 2, entries: [] }, events: [], challenges: [], checks: {}
+    daily: { last: "", streak: 0, freezes: 2, entries: [] }, events: [], challenges: [], checks: {}, discPacks: {}, mvPacks: {}, style2Done: false, motives2Done: false
   });
   let S;
   try { S = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) { S = fresh(); }
@@ -190,7 +214,7 @@
       if (nextAsk) q.push({ title: "Dream path: talk to " + nextAsk.charAt(0).toLowerCase() + nextAsk.slice(1), sub: d.title, xp: 50, href: "#dream" });
     }
     if (!S.quizDone) q.push({ title: "Unlock your play style", sub: styleReason(), xp: 100, act: "startstyle" });
-    else if (!S.motivesDone && (S.cards.length || Object.keys(S.watched).length >= 2)) q.push({ title: "Unlock what fires you up", sub: "6 quick picks about what keeps you going", xp: 50, act: "startmotives" });
+    else if (nextSharpen() && (S.cards.length || Object.keys(S.watched).length >= 2)) { const n = nextSharpen(); q.push({ title: "Sharpen your job matches", sub: n.label, xp: n.xp, act: n.act }); }
     if (!doneToday()) q.push({ title: "Today's 30-second check-in", sub: "Keep your streak alive", xp: 10, href: "#today" });
     for (const p of window.PROS) {
       const n = watchedCount(p);
@@ -224,8 +248,8 @@
     const m = S.dreamMode;
     return `<div style="display:flex;flex-direction:column;gap:6px;margin-top:12px">
         <span class="label">First Shift</span>
-        <h1 class="h1">Try real jobs now, while it's cheap to switch.</h1>
-        <p class="sub">Figure out what you're good at, what you love, and what you want to learn more about, before you have to decide.</p>
+        <h1 class="h1">Make money now. Figure out your future on the way.</h1>
+        <p class="sub">Find jobs that pay and teach you something, earn a little for trying new things, and do it with your friends.</p>
       </div>
       <div class="card">
         <div class="field"><label for="nm">Your first name</label><input id="nm" autocomplete="given-name" value="${esc(S.name)}"></div>
@@ -259,9 +283,12 @@
 
   V.quiz = function (part) {
     tabs(null);
-    if (part !== "motives") {
-      const total = QUIZ.length;
-      const item = QUIZ[quiz.i];
+    part = part || "style";
+    if (quiz.part !== part) quiz = { i: 0, most: null, least: null, picks: [], m: 0, mv: [], part };
+    if (!MSETS[part]) {
+      const SET = SETS[part] || QUIZ;
+      const total = SET.length;
+      const item = SET[quiz.i];
       const order = ["D", "I", "S", "C"].sort((a, b) => ((quiz.i * 7 + a.charCodeAt(0)) % 5) - ((quiz.i * 7 + b.charCodeAt(0)) % 5));
       const step = quiz.most == null ? "Tap the one MOST like you" : "Now tap the one LEAST like you";
       return `<div class="progress" aria-hidden="true"><div style="width:${(quiz.i / total) * 100}%"></div></div>
@@ -273,12 +300,13 @@
         </div>
         ${quiz.i > 0 ? `<button class="back" data-act="qback">${svg(ICON.back, 18)}Previous</button>` : ""}`;
     }
+    const MSET = MSETS[part];
     const mi = quiz.m;
-    const m = MOTIVES[mi];
+    const m = MSET[mi];
     const cur = quiz.mv[mi];
     const opts = [["a2", "Totally " + m.at], ["a1", "Kind of " + m.at], ["b1", "Kind of " + m.bt], ["b2", "Totally " + m.bt]];
-    return `<div class="progress" aria-hidden="true"><div style="width:${(mi / MOTIVES.length) * 100}%"></div></div>
-      <div class="between"><span class="label">${mi + 1} of ${MOTIVES.length} · This or that</span><button class="back" data-act="qexit" style="font-size:13px">Finish later</button></div>
+    return `<div class="progress" aria-hidden="true"><div style="width:${(mi / MSET.length) * 100}%"></div></div>
+      <div class="between"><span class="label">${mi + 1} of ${MSET.length} · This or that</span><button class="back" data-act="qexit" style="font-size:13px">Finish later</button></div>
       <h1 class="h1">Which sounds more like you?</h1>
       <div class="pair"><div><span class="label" style="color:var(--lime)">${esc(m.at)}</span><br>${esc(m.a)}</div><div><span class="label" style="color:var(--sky)">${esc(m.bt)}</span><br>${esc(m.b)}</div></div>
       <div class="scale" role="group" aria-label="How much">${opts.map(([v, l]) => `<button class="${cur === v ? "on" : ""}" data-mv="${v}">${l}</button>`).join("")}</div>
@@ -302,6 +330,7 @@
       <h1 class="h1 center" style="font-size:40px;color:var(--lime)">${esc(STYLES[st].name)}</h1>
       <p class="sub center" style="font-size:16px">${esc(STYLES[st].line)}</p>
       ${characterCard(false)}
+      ${sharpenCard()}
       ${styleFit()}
       <button class="btn" data-go="#me">See my card</button>
       <p class="sub center" style="font-size:12px">This is a quick read, not a full assessment. Your parent can add real assessment scores later.</p></div>`;
@@ -316,6 +345,24 @@
     return "A quick game that shows how you like to work and which jobs might fit.";
   }
 
+  const accuracy = () => [S.quizDone, S.motivesDone, S.style2Done, S.motives2Done].filter(Boolean).length;
+  function nextSharpen() {
+    if (S.source === "tti") return null;
+    if (!S.motivesDone) return { act: "startmotives", label: "6 quick picks about what fires you up", xp: 50 };
+    if (!S.style2Done) return { act: "startstyle2", label: "12 more questions about how you work", xp: 60 };
+    if (!S.motives2Done) return { act: "startmotives2", label: "6 more this-or-that picks", xp: 40 };
+    return null;
+  }
+  function sharpenCard() {
+    if (!S.quizDone || S.source === "tti") return "";
+    const a = accuracy(), n = nextSharpen();
+    const names = ["", "Good start", "Getting clearer", "Sharp", "Sharpest"];
+    const dots = [1, 2, 3, 4].map((i) => `<span style="width:28px;height:8px;border-radius:4px;background:${i <= a ? "var(--lime)" : "var(--line)"}"></span>`).join("");
+    return `<div class="card" style="gap:10px"><div class="between"><span class="label">Match accuracy</span><span style="font-size:13px;font-weight:600;color:var(--lime)">${names[a]}</span></div>
+      <div style="display:flex;gap:6px">${dots}</div>
+      ${n ? `<span style="font-size:14px;line-height:1.4">The more questions you answer, the better you'll see which jobs fit you best.</span>
+      <button class="btn ghost small" data-act="${n.act}">${esc(n.label)} · +${n.xp} XP</button>` : `<span style="font-size:14px;line-height:1.4">You answered everything. Your job matches are as sharp as this quiz gets. A real TTI assessment goes deeper.</span>`}</div>`;
+  }
   function characterCard(full) {
     if (!S.quizDone) {
       return `<div class="card" style="border-radius:24px;border-style:dashed;border-color:var(--dim)">
@@ -331,7 +378,7 @@
     const motives = S.motivesDone
       ? `<div style="display:flex;flex-direction:column;gap:8px"><span class="label">What fires you up</span>
         <div class="chips">${(S.motives || []).map((t) => `<span class="chip" style="cursor:default">${esc(t)}</span>`).join("")}</div></div>`
-      : (full ? `<button class="quest" data-act="startmotives" style="background:var(--bg)"><div class="qicon">${svg(ICON.lock, 20)}</div><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:15px">Unlock what fires you up</span><span style="font-size:13px;color:var(--muted)">6 quick picks · +50 XP</span></div></button>` : "");
+      : "";
     return `<div class="card" style="border-radius:24px;gap:16px">
       ${full ? `<div class="row"><div style="width:64px;height:64px;border-radius:20px;background:var(--lime);color:var(--ink);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:26px">${esc((S.name || "?").charAt(0).toUpperCase())}</div>
         <div style="display:flex;flex-direction:column;gap:2px"><span class="label">${esc(S.name || "You")}${S.source === "tti" ? " · TTI scores" : ""}</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:26px;line-height:1.1">${esc(STYLES[st].name)}</span><span style="font-size:13px;color:var(--muted)">${esc(STYLES[st].line)}</span></div></div>` : ""}
@@ -346,6 +393,7 @@
     const d = dream();
     return `<div class="between"><span class="h2">${esc(S.name ? S.name + "'s card" : "Your card")}</span><span style="font-size:13px;color:var(--muted)">Level ${level()} · ${S.xp} XP</span></div>
       ${characterCard(true)}
+      ${sharpenCard()}
       ${S.quizDone ? `<a class="quest" href="#reveal"><div class="qicon">${svg(ICON.star, 20)}</div><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:15px">Jobs that fit your style</span><span style="font-size:13px;color:var(--muted)">And pros you know who do them</span></div></a>` : ""}
       ${d ? `<a class="quest" href="#dream"><div class="qicon main">${svg(ICON.target, 20)}</div><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span class="label">Your dream path</span><span style="font-weight:700;font-size:17px">${esc(d.title)}</span><span style="font-size:13px;color:var(--muted)">${Object.keys(S.dreamDone).length} steps done</span></div></a>`
         : `<button class="quest" data-go="#settings"><div class="qicon">${svg(ICON.target, 20)}</div><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:15px">Have something in mind?</span><span style="font-size:13px;color:var(--muted)">Add a dream and get a path for it</span></div></button>`}
@@ -756,23 +804,43 @@
   }
 
   // ---------- Actions ----------
+  function combineDisc() {
+    const packs = Object.values(S.discPacks);
+    if (!packs.length) return;
+    const disc = {};
+    ["D", "I", "S", "C"].forEach((k) => { disc[k] = Math.round(packs.reduce((t, p) => t + p[k], 0) / packs.length); });
+    S.disc = disc;
+  }
+  function combineMotives() {
+    const score = {};
+    Object.values(S.mvPacks).forEach((p) => Object.keys(p).forEach((t) => { score[t] = (score[t] || 0) + p[t]; }));
+    S.motives = ALL_MOTIVE_TAGS.map((t, i) => ({ t, s: score[t] || 0, i })).filter((x) => x.s > 0).sort((x, y) => y.s - x.s || x.i - y.i).slice(0, 3).map((x) => x.t);
+  }
   function finishStyle() {
+    const part = quiz.part || "style", n = (SETS[part] || QUIZ).length;
     const raw = { D: 0, I: 0, S: 0, C: 0 };
     quiz.picks.forEach((p) => { raw[p.most]++; raw[p.least]--; });
     const disc = {};
-    Object.keys(raw).forEach((k) => { disc[k] = Math.max(4, Math.min(98, Math.round(((raw[k] + 9) / 18) * 100))); });
-    S.disc = disc; S.quizDone = true; S.source = "quiz";
-    if (!S._quizXP) { S.xp += 100; S._quizXP = true; }
-    save(); log("style_done", { disc });
+    Object.keys(raw).forEach((k) => { disc[k] = Math.max(4, Math.min(98, Math.round(((raw[k] + 0.75 * n) / (1.5 * n)) * 100))); });
+    if (part === "style") S.discPacks = {};
+    else if (S.disc && !S.discPacks.style) S.discPacks.style = S.disc; // older saves
+    S.discPacks[part] = disc; combineDisc(); S.source = "quiz";
+    if (part === "style") { S.quizDone = true; if (!S._quizXP) { S.xp += 100; S._quizXP = true; } }
+    else { S.style2Done = true; if (!S._s2XP) { S.xp += 60; S._s2XP = true; toast("+60 XP  Sharper results"); } }
+    save(); log(part + "_done", { disc });
     quiz = { i: 0, most: null, least: null, picks: [], m: 0, mv: [] };
     go("#reveal");
   }
   function finishMotives() {
-    const tags = quiz.mv.map((v, i) => ({ t: v[0] === "a" ? MOTIVES[i].at : MOTIVES[i].bt, s: +v[1], i }))
-      .sort((x, y) => y.s - x.s || x.i - y.i).slice(0, 3).map((x) => x.t);
-    S.motives = tags; S.motivesDone = true;
-    if (!S._motXP) { S.xp += 50; S._motXP = true; toast("+50 XP  Unlocked what fires you up"); }
-    save(); log("motives_done", { tags });
+    const part = quiz.part || "motives", MSET = MSETS[part];
+    const sc = {};
+    quiz.mv.forEach((v, i) => { const t = v[0] === "a" ? MSET[i].at : MSET[i].bt; sc[t] = (sc[t] || 0) + +v[1]; });
+    if (part === "motives") S.mvPacks = {};
+    else if (S.motives.length && !S.mvPacks.motives) { S.mvPacks.motives = {}; S.motives.forEach((t, i) => { S.mvPacks.motives[t] = 3 - i; }); }
+    S.mvPacks[part] = sc; combineMotives();
+    if (part === "motives") { S.motivesDone = true; if (!S._motXP) { S.xp += 50; S._motXP = true; toast("+50 XP  Unlocked what fires you up"); } }
+    else { S.motives2Done = true; if (!S._m2XP) { S.xp += 40; S._m2XP = true; toast("+40 XP  Sharper results"); } }
+    save(); log(part + "_done", { tags: S.motives });
     quiz = { i: 0, most: null, least: null, picks: [], m: 0, mv: [] };
     go("#me");
   }
@@ -816,13 +884,13 @@
       quiz.least = k;
       quiz.picks[quiz.i] = { most: quiz.most, least: quiz.least };
       render();
-      setTimeout(() => { if (quiz.i === QUIZ.length - 1) finishStyle(); else { quiz.i++; quiz.most = null; quiz.least = null; render(); } }, 280);
+      setTimeout(() => { if (quiz.i === (SETS[quiz.part] || QUIZ).length - 1) finishStyle(); else { quiz.i++; quiz.most = null; quiz.least = null; render(); } }, 280);
       return;
     }
     if (ds.mv) {
       const mi = quiz.m;
       quiz.mv[mi] = ds.mv; render();
-      setTimeout(() => { if (mi === MOTIVES.length - 1) finishMotives(); else { quiz.m++; render(); } }, 250);
+      setTimeout(() => { if (mi === (MSETS[quiz.part] || MOTIVES).length - 1) finishMotives(); else { quiz.m++; render(); } }, 250);
       return;
     }
 
@@ -944,6 +1012,8 @@
     }
     if (act === "startstyle") { quiz.most = null; quiz.least = null; log("style_start", { resume: quiz.i }); go("#quiz/style"); }
     if (act === "startmotives") { log("motives_start", { resume: quiz.m }); go("#quiz/motives"); }
+    if (act === "startstyle2") { log("style2_start"); go("#quiz/style2"); }
+    if (act === "startmotives2") { log("motives2_start"); go("#quiz/motives2"); }
     if (act === "qexit") { log("quiz_exit", { at: quiz.i, m: quiz.m }); go("#me"); }
     if (act === "mback") { if (quiz.m > 0) quiz.m--; render(); }
     if (act === "qback") {
@@ -1029,7 +1099,7 @@
       const data = JSON.stringify({ exported: new Date().toISOString(), xp: S.xp, cards: S.cards.length, streak: S.daily.streak, events: S.events });
       if (navigator.clipboard) navigator.clipboard.writeText(data).then(() => toast("Usage log copied")); else toast("Copy not supported here");
     }
-    if (act === "retake") { S.quizDone = false; S.motivesDone = false; save(); quiz = { i: 0, most: null, least: null, picks: [], m: 0, mv: [] }; go("#quiz/style"); }
+    if (act === "retake") { S.quizDone = false; S.motivesDone = false; S.style2Done = false; S.motives2Done = false; S.discPacks = {}; S.mvPacks = {}; save(); quiz = { i: 0, most: null, least: null, picks: [], m: 0, mv: [] }; go("#quiz/style"); }
     if (act === "reset") {
       if (el.dataset.confirm !== "1") { el.dataset.confirm = "1"; el.textContent = "Tap again to erase all of your data"; return; }
       S = fresh(); save(); quiz = { i: 0, most: null, least: null, picks: [], m: 0, mv: [] }; go("#");
