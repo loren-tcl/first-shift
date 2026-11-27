@@ -281,7 +281,7 @@
       </div>
       <button class="btn" data-act="begin">Let's go</button>
       <p class="sub center" style="font-size:12px">All of your data stays on this phone.</p>
-      <a class="back" href="#parents" style="align-self:center;font-size:13px">I'm a parent</a>`;
+      <div class="row" style="justify-content:center;gap:18px"><a class="back" href="#parents" style="font-size:13px">I'm a parent</a><a class="back" href="#employers" style="font-size:13px">I'm hiring</a></div>`;
   };
 
   V.choose = function () {
@@ -559,6 +559,35 @@
       <a class="back" href="#forpros" style="align-self:center">See what adults (pros) are asked to do</a>`;
   };
 
+  let empDraft = { name: "", role: "", age: "16", pay: "", teaches: "", mentor: "" };
+  V.employers = function () {
+    tabs(null);
+    const d = empDraft;
+    const row = (t, x) => `<div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:15px">${t}</span><span style="font-size:14px;color:var(--muted);line-height:1.4">${x}</span></div>`;
+    return `${backBtn(S.started ? "#hired" : "#start", S.started ? "Get hired" : "Back")}
+      <div style="display:flex;flex-direction:column;gap:6px"><span class="label">For employers</span>
+      <h1 class="h1">Hire teens who picked your job on purpose.</h1>
+      <p class="sub">First Shift helps teens try real jobs to learn what they're good at. They come to you knowing what they want to learn, and they show up to learn it.</p></div>
+      <div class="card"><span class="label">Why list here</span>
+        ${row("Better-fit hires", "Teens see what your job teaches before they apply, so the ones who come want that.")}
+        ${row("A reputation you can earn", "Teens who worked for you answer four quick questions: hiring age, real pay, would they tell a friend, and one tip. You can reply.")}
+        ${row("Help a kid find their path", "Your first job taught you something. This is how you pass that on.")}</div>
+      <div class="card"><span class="label">Every listing shows</span>
+        <div class="chips">${["The youngest age you hire", "Real pay", "What career it teaches", "Who mentors them", "Season or hours"].map((x) => `<span class="chip" style="cursor:default">${x}</span>`).join("")}</div>
+        <span style="font-size:13px;color:var(--muted)">Pay is always shown. Listings that hide it don't go up.</span></div>
+      <div class="card"><span class="label" style="color:var(--lime)">Draft your listing</span>
+        <div class="field"><label for="e_n">Business name</label><input id="e_n" value="${esc(d.name)}" placeholder="Your business name"></div>
+        <div class="field"><label for="e_r">The job</label><input id="e_r" value="${esc(d.role)}" placeholder="Kennel assistant"></div>
+        <span style="font-size:14px;font-weight:600">Youngest age you hire</span>
+        <div class="chips">${["14", "15", "16", "17", "18"].map((a) => `<button class="chip ${d.age === a ? "on" : ""}" data-eage="${a}">${a}</button>`).join("")}</div>
+        <div class="field"><label for="e_p">Pay</label><input id="e_p" value="${esc(d.pay)}" placeholder="$14/hr"></div>
+        <div class="field"><label for="e_t">What career would a teen learn about here?</label><input id="e_t" value="${esc(d.teaches)}" placeholder="Animal care, the path toward vet tech or vet"></div>
+        <div class="field"><label for="e_m">Who would teach them, and what would they be trusted with?</label><textarea id="e_m" placeholder="Our lead groomer trains every new hire. By week three they run feeding on their own.">${esc(d.mentor)}</textarea></div>
+        <button class="btn" data-act="sendlisting">${svg(ICON.share, 18)}Send my listing</button>
+        <span style="font-size:12px;color:var(--muted)">Free while First Shift is in its pilot. Send it to whoever shared this page with you.</span></div>
+      <a class="back" href="#parents" style="align-self:center">What parents see</a>`;
+  };
+
   V.forpros = function () {
     tabs(S.started ? "pros" : null);
     return `${S.started ? backBtn("#pros", "Pros") : ""}
@@ -744,7 +773,8 @@
         <div class="between"><span style="font-size:14px">Résumé from your ${jobs.length} card${jobs.length === 1 ? "" : "s"}</span><a href="#resume" style="color:var(--lime);font-weight:600;font-size:14px">${jobs.length ? "View" : "Start"}</a></div>
         <div class="between"><span style="font-size:14px">${refs.length ? "Possible references: " + esc(refs.map((p) => p.name).join(", ")) : "References: ask a pro for a chat first"}</span></div>
         <div class="between"><span style="font-size:14px">Scout badge</span><span style="font-size:14px;color:${sc >= 5 ? "var(--lime)" : "var(--muted)"}">${sc >= 5 ? "Earned" : sc + " of 5"}</span></div></div>
-      <p class="sub" style="font-size:12px">Sample employers for the prototype. Real listings will come from employers who post, checked by teens who worked there.</p>`;
+      <p class="sub" style="font-size:12px">Sample employers for the prototype. Real listings will come from employers who post, checked by teens who worked there.</p>
+      <a class="back" href="#employers" style="align-self:center">Know a business that hires teens? Send them this</a>`;
   };
   V.employer = function (id) {
     tabs("map");
@@ -830,6 +860,7 @@
     const h = (location.hash || "").slice(1);
     if (h === "forpros") return ["forpros"];
     if (h === "parents") return ["parents"];
+    if (h === "employers") return ["employers"];
     if (!S.started && h !== "settings") return ["start"];
     if (!S.firstMove && !["settings", "quiz", "reveal"].includes(h.split("/")[0])) return ["choose"];
     if (h === "reveal" && !S.quizDone) return ["me"];
@@ -995,6 +1026,7 @@
     }
     if (ds.chok) { const c = S.challenges.find((x) => String(x.id) === ds.chok); if (c) { c.status = "approved"; c.paid = dstr(); save(); log("challenge_ok", c.kind); toast(money(c.reward) ? "Approved. Pay " + c.reward + " when you can." : "Approved"); render(); } return; }
     if (ds.chdel) { S.challenges = S.challenges.filter((x) => String(x.id) !== ds.chdel); save(); render(); return; }
+    if (ds.eage) { syncEmp(); empDraft.age = ds.eage; render(); return; }
     if (ds.spk) { syncSp(); spDraft.kind = ds.spk; render(); return; }
     if (ds.spw) { syncSp(); spDraft.who = ds.spw; render(); return; }
     if (ds.spr) { syncSp(); spDraft.reward = ds.spr === "other" ? "other" : ds.spr; render(); return; }
@@ -1042,6 +1074,14 @@
     if (act === "copyresume") { if (navigator.clipboard) navigator.clipboard.writeText(resumeText()).then(() => toast("Copied")); log("resume_copy"); return; }
     if (act === "shareresume") { log("resume_share"); if (navigator.share) navigator.share({ title: "My résumé", text: resumeText() }).catch(() => {}); else window.location.href = "sms:?&body=" + encodeURIComponent(resumeText()); return; }
     if (act === "cardfor") { cardDraft = { kind: "Job", title: "", where: (window.EMPLOYERS.find((e) => e.id === ds.emp) || {}).name || "", area: (window.EMPLOYERS.find((e) => e.id === ds.emp) || {}).area || "", length: "", loved: "", drained: "", learned: "", next: "", emp: ds.emp }; return; }
+    if (act === "sendlisting") {
+      syncEmp(); const d = empDraft;
+      if (!d.name || !d.role || !d.pay || !d.teaches) { toast("Fill in name, job, pay and what it teaches"); return; }
+      const text = `First Shift listing\n${d.name}: ${d.role}\nHires ${d.age}+ · ${d.pay}\nTeaches: ${d.teaches}${d.mentor ? "\nMentoring: " + d.mentor : ""}`;
+      log("send_listing");
+      if (navigator.share) navigator.share({ title: "First Shift listing", text }).catch(() => {}); else window.location.href = "sms:?&body=" + encodeURIComponent(text);
+      return;
+    }
     if (act === "sendteen") {
       const text = `I found something I think you'd actually like: First Shift. It helps you find jobs that pay and teach you something, and you can earn a little for trying new things. ${SITE}`;
       log("send_teen");
@@ -1159,6 +1199,9 @@
     }
   });
 
+  function syncEmp() {
+    [["e_n", "name"], ["e_r", "role"], ["e_p", "pay"], ["e_t", "teaches"], ["e_m", "mentor"]].forEach(([id, k]) => { const el = $("#" + id); if (el) empDraft[k] = el.value.trim(); });
+  }
   function syncSp() {
     const c = $("#sp_c"), o = $("#sp_o"), sp = $("#sp_s");
     if (c) spDraft.custom = c.value; if (sp) spDraft.sponsor = sp.value;
