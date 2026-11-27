@@ -281,7 +281,7 @@
       </div>
       <button class="btn" data-act="begin">Let's go</button>
       <p class="sub center" style="font-size:12px">All of your data stays on this phone.</p>
-      <div class="row" style="justify-content:center;gap:18px"><a class="back" href="#parents" style="font-size:13px">I'm a parent</a><a class="back" href="#employers" style="font-size:13px">I'm hiring</a></div>`;
+      <div class="row" style="justify-content:center;gap:18px"><a class="back" href="#watch" style="font-size:13px">Watch the 1-minute video</a><a class="back" href="#parents" style="font-size:13px">I'm a parent</a><a class="back" href="#employers" style="font-size:13px">I'm hiring</a></div>`;
   };
 
   V.choose = function () {
@@ -535,6 +535,15 @@
       <button class="btn ghost" data-act="invitepro">Ask my parent to invite them · +30 XP</button></div>`;
   }
 
+  function vid(a, label) {
+    return `<div class="card" style="padding:12px;gap:10px"><video src="videos/${a}.mp4?v=1" poster="videos/${a}.jpg" controls playsinline preload="none" style="width:100%;aspect-ratio:9/16;max-height:70vh;border-radius:16px;background:#000;object-fit:contain" data-vid="${a}"></video>
+      <span style="font-size:13px;color:var(--muted);padding:0 4px">${label}</span></div>`;
+  }
+  V.watch = function () {
+    tabs(null);
+    return `${backBtn(S.started ? "#me" : "#start", "Back")}${vid("teens", "First Shift in one minute")}
+      <button class="btn" data-go="${S.started ? "#me" : "#start"}">${S.started ? "Back to my card" : "Let's go"}</button>`;
+  };
   V.parents = function () {
     tabs(null);
     const step = (n, t, d) => `<div class="row" style="align-items:flex-start;gap:12px"><div style="width:30px;height:30px;flex:none;border-radius:10px;background:var(--lime);color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:700">${n}</div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:15px">${t}</span><span style="font-size:14px;color:var(--muted);line-height:1.4">${d}</span></div></div>`;
@@ -542,6 +551,7 @@
       <div style="display:flex;flex-direction:column;gap:6px"><span class="label">For parents</span>
       <h1 class="h1">Help your teen find their path before college decides it for them.</h1>
       <p class="sub">First Shift helps teens try real jobs, talk to adults they already know, and learn what they're good at, while switching costs almost nothing.</p></div>
+      ${vid("parents", "The 1-minute version for parents")}
       <div class="card"><span class="label">Why it works</span>
         <span style="font-size:15px;line-height:1.45">Most teens pick a major based on friends, teachers and ads. A few real jobs, a few honest conversations and a little reflection give them better information, and it's far cheaper to learn it at 16 than in year two of the wrong degree.</span></div>
       <div class="card"><span class="label">What your teen does</span>
@@ -568,6 +578,7 @@
       <div style="display:flex;flex-direction:column;gap:6px"><span class="label">For employers</span>
       <h1 class="h1">Hire teens who picked your job on purpose.</h1>
       <p class="sub">First Shift helps teens try real jobs to learn what they're good at. They come to you knowing what they want to learn, and they show up to learn it.</p></div>
+      ${vid("employers", "The 1-minute version for employers")}
       <div class="card"><span class="label">Why list here</span>
         ${row("Better-fit hires", "Teens see what your job teaches before they apply, so the ones who come want that.")}
         ${row("A reputation you can earn", "Teens who worked for you answer four quick questions: hiring age, real pay, would they tell a friend, and one tip. You can reply.")}
@@ -594,6 +605,7 @@
       <div style="display:flex;flex-direction:column;gap:6px"><span class="label">For pros</span>
       <h1 class="h1">A teen you know wants to hear about your job.</h1>
       <p class="sub">First Shift helps teens try real jobs and talk to real adults before they have to choose a path. You'd be one of those adults.</p></div>
+      ${vid("pros", "The 1-minute version for pros")}
       <div class="card"><span class="label">What you'd do</span>
         <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:15px;line-height:1.45">
           <li>Record five short videos on your phone, about a minute each, answering the questions below.</li>
@@ -861,6 +873,7 @@
     if (h === "forpros") return ["forpros"];
     if (h === "parents") return ["parents"];
     if (h === "employers") return ["employers"];
+    if (h === "watch") return ["watch"];
     if (!S.started && h !== "settings") return ["start"];
     if (!S.firstMove && !["settings", "quiz", "reveal"].includes(h.split("/")[0])) return ["choose"];
     if (h === "reveal" && !S.quizDone) return ["me"];
@@ -924,6 +937,7 @@
     window.location.href = smsLink(body);
   }
 
+  document.addEventListener("play", (e) => { const v = e.target; if (v && v.dataset && v.dataset.vid) log("video_play", v.dataset.vid); }, true);
   document.addEventListener("click", (ev) => {
     const el = ev.target.closest("button,a");
     if (!el) return;
