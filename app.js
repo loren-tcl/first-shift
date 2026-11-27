@@ -280,7 +280,8 @@
         ${m === "none" ? `<p class="sub">Perfect. That's exactly what this is for.</p>` : ""}
       </div>
       <button class="btn" data-act="begin">Let's go</button>
-      <p class="sub center" style="font-size:12px">All of your data stays on this phone.</p>`;
+      <p class="sub center" style="font-size:12px">All of your data stays on this phone.</p>
+      <a class="back" href="#parents" style="align-self:center;font-size:13px">I'm a parent</a>`;
   };
 
   V.choose = function () {
@@ -534,6 +535,30 @@
       <button class="btn ghost" data-act="invitepro">Ask my parent to invite them · +30 XP</button></div>`;
   }
 
+  V.parents = function () {
+    tabs(null);
+    const step = (n, t, d) => `<div class="row" style="align-items:flex-start;gap:12px"><div style="width:30px;height:30px;flex:none;border-radius:10px;background:var(--lime);color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:700">${n}</div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:15px">${t}</span><span style="font-size:14px;color:var(--muted);line-height:1.4">${d}</span></div></div>`;
+    return `${backBtn(S.started ? "#settings" : "#start", S.started ? "Settings" : "Back")}
+      <div style="display:flex;flex-direction:column;gap:6px"><span class="label">For parents</span>
+      <h1 class="h1">Help your teen find their path before college decides it for them.</h1>
+      <p class="sub">First Shift helps teens try real jobs, talk to adults they already know, and learn what they're good at, while switching costs almost nothing.</p></div>
+      <div class="card"><span class="label">Why it works</span>
+        <span style="font-size:15px;line-height:1.45">Most teens pick a major based on friends, teachers and ads. A few real jobs, a few honest conversations and a little reflection give them better information, and it's far cheaper to learn it at 16 than in year two of the wrong degree.</span></div>
+      <div class="card"><span class="label">What your teen does</span>
+        ${step(1, "Finds their play style", "A quick quiz about how they like to work, and which jobs tend to fit.")}
+        ${step(2, "Hears from adults they know", "Short videos from family and friends about their real jobs, including what it pays.")}
+        ${step(3, "Tries real things", "A job, a shadow day, a 15-minute chat. You set up every meeting with an adult.")}
+        ${step(4, "Turns each one into a card", "What they loved, what drained them, what to try next. Their reflections stay private unless they share.")}</div>
+      <div class="card"><span class="label">Your part</span>
+        <span style="font-size:15px;line-height:1.45"><b>Requests come to you.</b> When your teen asks an adult for a chat or shadow day, the request is a text to your phone. You decide.</span>
+        <span style="font-size:15px;line-height:1.45"><b>Sponsor a challenge, if you want.</b> Put $5 or $10 behind something real, like a chat with an uncle about engineering. You approve it when it's done and pay them yourself.</span>
+        <span style="font-size:15px;line-height:1.45"><b>Talk about the cards.</b> Each card is a ready-made dinner conversation.</span></div>
+      <div class="card"><span class="label">Privacy</span>
+        <span style="font-size:14px;line-height:1.45">Everything stays on your teen's phone in this early version. No accounts, no ads, nothing sold. You'll get your own parent view when accounts arrive.</span></div>
+      <button class="btn" data-act="sendteen">${svg(ICON.share, 18)}Send First Shift to my teen</button>
+      <a class="back" href="#forpros" style="align-self:center">See what adults (pros) are asked to do</a>`;
+  };
+
   V.forpros = function () {
     tabs(S.started ? "pros" : null);
     return `${S.started ? backBtn("#pros", "Pros") : ""}
@@ -636,6 +661,7 @@
         <button class="btn small" data-act="saveyou">Save</button></div>
       <div class="card"><span class="label">Parent tools · challenges</span>
         <p class="sub" style="font-size:13px">Put a little money behind something you want your teen to try, and approve challenges they finish. You pay it out yourself.</p>
+        <a class="back" href="#parents" style="font-size:13px">What parents need to know</a>
         <a class="btn small" href="#sponsor">Sponsor or approve challenges${S.challenges.filter((c) => c.status === "claimed").length ? " · " + S.challenges.filter((c) => c.status === "claimed").length + " waiting" : ""}</a></div>
       <div class="card"><span class="label">Parent tools · real TTI scores</span>
         <p class="sub" style="font-size:13px">Type the four DISC scores (0 to 100) from the teen's TTI report. They replace the quiz.</p>
@@ -803,6 +829,7 @@
   function route() {
     const h = (location.hash || "").slice(1);
     if (h === "forpros") return ["forpros"];
+    if (h === "parents") return ["parents"];
     if (!S.started && h !== "settings") return ["start"];
     if (!S.firstMove && !["settings", "quiz", "reveal"].includes(h.split("/")[0])) return ["choose"];
     if (h === "reveal" && !S.quizDone) return ["me"];
@@ -1015,6 +1042,12 @@
     if (act === "copyresume") { if (navigator.clipboard) navigator.clipboard.writeText(resumeText()).then(() => toast("Copied")); log("resume_copy"); return; }
     if (act === "shareresume") { log("resume_share"); if (navigator.share) navigator.share({ title: "My résumé", text: resumeText() }).catch(() => {}); else window.location.href = "sms:?&body=" + encodeURIComponent(resumeText()); return; }
     if (act === "cardfor") { cardDraft = { kind: "Job", title: "", where: (window.EMPLOYERS.find((e) => e.id === ds.emp) || {}).name || "", area: (window.EMPLOYERS.find((e) => e.id === ds.emp) || {}).area || "", length: "", loved: "", drained: "", learned: "", next: "", emp: ds.emp }; return; }
+    if (act === "sendteen") {
+      const text = `I found something I think you'd actually like: First Shift. It helps you find jobs that pay and teach you something, and you can earn a little for trying new things. ${SITE}`;
+      log("send_teen");
+      if (navigator.share) navigator.share({ title: "First Shift", text }).catch(() => {}); else window.location.href = "sms:?&body=" + encodeURIComponent(text);
+      return;
+    }
     if (act === "nexthead") {
       const nm = $("#nm"), ph = $("#ph"), dt = $("#dt");
       if (nm) S.name = nm.value; if (ph) S.parentPhone = ph.value; if (dt) S.dreamText = dt.value;
